@@ -12,7 +12,7 @@
     "imageUrl": "https://www.youbet.fun/youbet.png",
     "buttonTitle": "Open YouBet",
     "splashImageUrl": "https://www.youbet.fun/youbet.png",
-    "splashBackgroundColor": "#15161B",
+    "splashBackgroundColor": "#ffffff",
     "webhookUrl": "https://www.youbet.fun/api/webhook"
   },
   "miniApp": {
