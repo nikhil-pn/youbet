@@ -1,0 +1,22 @@
+{
+  "accountAssociation": {
+    "header": "Bearer farcaster-domain-verification",
+    "payload": "youbet.fun"
+  },
+  "frame": {
+    "name": "YouBet",
+    "iconUrl": "https://www.youbet.fun/youbet.png",
+    "homeUrl": "https://www.youbet.fun",
+    "imageUrl": "https://www.youbet.fun/youbet.png",
+    "buttonTitle": "Open YouBet",
+    "splashImageUrl": "https://www.youbet.fun/youbet.png",
+    "splashBackgroundColor": "#15161B",
+    "webhookUrl": "https://www.youbet.fun"
+  },
+  "miniApp": {
+    "name": "YouBet",
+    "description": "Bet on anything - Discover and create bets in a decentralized betting platform",
+    "iconUrl": "https://www.youbet.fun/youbet.png",
+    "url": "https://www.youbet.fun"
+  }
+} 

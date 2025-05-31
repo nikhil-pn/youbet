@@ -1,6 +1,15 @@
+"use client";
+
+import { sdk } from "@farcaster/frame-sdk";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
 export default function Home() {
+  useEffect(() => {
+    // Call ready when the interface is ready to be displayed
+    sdk.actions.ready();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Navigation Bar */}
