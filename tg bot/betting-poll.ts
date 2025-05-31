@@ -1,4 +1,40 @@
 import { Context } from "grammy";
+import { createBet, voteOnBet } from "./apis/contract";
+import { ethers } from "ethers";
+
+// Firebase imports
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: process.env.API_KEY,
+  authDomain: process.env.AUTH_DOMAIN,
+  projectId: process.env.PROJECT_ID,
+  storageBucket: process.env.STORAGE_BUCKET,
+  messagingSenderId: process.env.MESSAGING_SENDER_ID,
+  appId: process.env.APP_ID,
+  measurementId: process.env.MEASUREMENT_ID,
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Function to convert public key to Ethereum address
+function publicKeyToAddress(publicKey: string): string {
+  try {
+    // Remove '0x' prefix if present
+    const cleanKey = publicKey.startsWith('0x') ? publicKey.slice(2) : publicKey;
+    // Create a keccak256 hash of the public key
+    const hash = ethers.keccak256('0x' + cleanKey);
+    // Take the last 20 bytes (40 characters) and add '0x' prefix
+    return '0x' + hash.slice(-40);
+  } catch (error) {
+    console.error('Error converting public key to address:', error);
+    throw new Error('Invalid public key format');
+  }
+}
 
 interface BetPollData {
   question: string;
@@ -28,10 +64,11 @@ export class NativeBettingPoll {
 
   async createBetPoll(ctx: Context) {
     try {
+      
       // Extract the command text after /bet
       const messageText = ctx.message?.text || '';
       const commandMatch = messageText.match(/^\/bet(?:@\w+)?\s+([\s\S]+)/);
-
+      
       if (!commandMatch) {
         return ctx.reply(
           "⚠️ *Invalid Format*\n\n" +
@@ -74,8 +111,33 @@ export class NativeBettingPoll {
       }
 
       const betAmount = betLine.substring(4).trim();
-      const moderator = modLine.substring(4).trim();
+      const betAmountNumber = betAmount.split(' ')[0]; // Extract just the number
       const creator = ctx.from?.username || ctx.from?.first_name || 'Anonymous';
+      const moderator = modLine.substring(4).trim().replace('@', ''); // Remove @ from username
+
+      // Get creator's private key from Firebase
+      const creatorDoc = await getDoc(doc(db, 'users', creator));
+      if (!creatorDoc.exists()) {
+        return ctx.reply("❌ Creator not registered. Please register first.");
+      }
+      const creatorData = creatorDoc.data();
+      const privateKey = creatorData.privateKey;
+
+      // Get moderator's public address from Firebase
+      const moderatorDoc = await getDoc(doc(db, 'users', moderator));
+      if (!moderatorDoc.exists()) {
+        return ctx.reply("❌ Moderator not registered. Please register first.");
+      }
+      const moderatorData = moderatorDoc.data();
+      const publicKey = moderatorData.publicKey;
+      
+      // Convert public key to Ethereum address
+      const moderatorAddress = publicKeyToAddress(publicKey);
+
+      // Validate moderator address
+      if (!moderatorAddress) {
+        return ctx.reply("❌ Failed to convert moderator's public key to address.");
+      }
 
       // Send context message first
       const contextMessage =
@@ -93,13 +155,19 @@ export class NativeBettingPoll {
         question,
         ["Yes", "No"],
         {
-          is_anonymous: false, // Changed to false so we can track voters
+          is_anonymous: false,
           type: "regular",
           allows_multiple_answers: false,
-          // Optional: Set a close date (e.g., 24 hours from now)
-          // close_date: Math.floor(Date.now() / 1000) + (24 * 60 * 60)
         }
       );
+
+      console.log('Debug values:', {
+        pollId: pollMessage.poll!.id,
+        moderatorAddress,
+        publicKey,
+        betAmount: betAmountNumber,
+        hasPrivateKey: !!privateKey
+      });
 
       // Store poll data for later reference
       const pollData: BetPollData = {
@@ -118,6 +186,23 @@ export class NativeBettingPoll {
 
       console.log(`Created betting poll: ${question} | Poll ID: ${pollMessage.poll!.id}`);
 
+      // Create bet on chain
+      try {
+        await createBet(
+          pollMessage.poll!.id,
+          moderatorAddress,
+          betAmountNumber,
+          privateKey
+        );
+      } catch (error) {
+        console.error('Contract error details:', {
+          error: error.message,
+          moderatorAddress,
+          betAmount: betAmountNumber
+        });
+        throw error;
+      }
+
     } catch (error) {
       console.error('Error creating bet poll:', error);
       await ctx.reply(
@@ -130,7 +215,25 @@ export class NativeBettingPoll {
   // Function to handle "Yes" votes
   private async handleYesVote(voteData: VoteData, ctx: Context) {
     console.log(`✅ YES vote from ${voteData.username || voteData.firstName} for poll: ${voteData.pollId}`);
-
+    
+    const voter = ctx.from?.username || ctx.from?.first_name;
+    console.log("voter", voter)
+    const voterDoc = await getDoc(doc(db, 'users', voter));
+    if (!voterDoc.exists()) {
+      return ctx.reply("❌ Creator not registered. Please register first.");
+    }
+    const voterData = voterDoc.data();
+    const privateKey = voterData.privateKey;
+    try {
+      await voteOnBet(
+        voteData.pollId,
+        1,
+        privateKey
+      );
+    } catch (error) {
+      console.error('Contract error details:', error);
+      throw error;
+    }
     // Add your custom logic here for Yes votes
     // For example:
     // - Add user to a "Yes voters" list
@@ -212,11 +315,45 @@ export class NativeBettingPoll {
       filteredVotes.push(voteData);
       pollVotes.set(pollAnswer.poll_id, filteredVotes);
 
+      // Get voter information from pollAnswer.user instead of ctx.from
+      const voter = user.username || user.first_name;
+      console.log("voter", voter);
+      
+      if (!voter) {
+        console.error("No username or first name found for voter");
+        return;
+      }
+
+      const voterDoc = await getDoc(doc(db, 'users', voter));
+      if (!voterDoc.exists()) {
+        console.error("voterDoc Bet")
+        return;
+      }
+
+      const voterData = voterDoc.data();
+      const privateKey = voterData.privateKey;
+
       // Trigger the appropriate function based on the vote
       if (voteChoice === 'Yes') {
-        await this.handleYesVote(voteData, ctx);
+        try {
+          await voteOnBet(
+            pollAnswer.poll_id.toString(),
+            1,
+            privateKey
+          );
+        } catch (error) {
+          console.error('Contract error details:', error);
+        }
       } else {
-        await this.handleNoVote(voteData, ctx);
+        try {
+          await voteOnBet(
+            pollAnswer.poll_id.toString(),
+            0,
+            privateKey
+          );
+        } catch (error) {
+          console.error('Contract error details:', error);
+        }
       }
 
       // Optional: Send a notification to the group chat

@@ -1,0 +1,24 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEwNjAxNTksInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg5MzU0RTI4N0FjQ2JBMmM0NjAyMzBhYjgzQzVFMzdiNDg4Nzc2YWMyIn0",
+    "payload": "eyJkb21haW4iOiJ3d3cueW91YmV0LmZ1biJ9",
+    "signature": "MHgzOThjZjUyZmQ2MTgwZGRhMTE3ZWJmNzBlMmI2MWUwMzNmNTdlMGIwOGQ3N2U3ZDc5MDM5NzQyOTJmZTRiZWZlNTYwM2RkZjQ2ZTNlZWNjMWY5MDEzZGI4ZmE0NTk5ZmQwNDU2MmY2MDJhNzgzMDY0NjViOTY4NWY0OWViM2YwZDFi"
+  },
+  "frame": {
+    "version": "1",
+    "name": "YouBet",
+    "iconUrl": "https://www.youbet.fun/youbet.png",
+    "homeUrl": "https://www.youbet.fun",
+    "imageUrl": "https://www.youbet.fun/youbet.png",
+    "buttonTitle": "Open YouBet",
+    "splashImageUrl": "https://www.youbet.fun/youbet.png",
+    "splashBackgroundColor": "#ffffff",
+    "webhookUrl": "https://www.youbet.fun/api/webhook"
+  },
+  "miniApp": {
+    "name": "YouBet",
+    "description": "Bet on anything - Discover and create bets in a decentralized betting platform",
+    "iconUrl": "https://www.youbet.fun/youbet.png",
+    "url": "https://www.youbet.fun"
+  }
+} 

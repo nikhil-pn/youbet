@@ -23,7 +23,9 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Monad RPC endpoint
-const MONAD_RPC_URL = "https://testnet-rpc.monad.xyz";
+//const MONAD_RPC_URL = "https://testnet-rpc.monad.xyz";
+const MONAD_RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/Ga1VL8EhvMVle7_yFbZZ4CgTEVCrBSpS";
+
 
 // State to track if the user is expected to send a wallet address
 
