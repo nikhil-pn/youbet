@@ -1,120 +1,146 @@
-# Farcaster Mentions Monitor
+# Farcaster Mention Bot
 
-A simple JavaScript script to monitor Farcaster for mentions of your username (@aaronegeorge) and display them in the console.
+A simple JavaScript bot that listens to Farcaster mentions using the Neynar API.
 
-## 🚀 Quick Setup
+## Features
+
+- 🔍 Polls for mentions every 30 seconds
+- 📢 Detects new mentions in real-time
+- 💬 Extracts mention details (author, text, timestamp, etc.)
+- 🤖 Customizable response handling
+- 🛑 Graceful shutdown handling
+
+## Setup
 
 ### Prerequisites
-- Node.js installed on your computer
-- Internet connection
-- A Neynar API key (free)
+
+- Node.js (v14 or higher)
+- npm or yarn
+- Neynar API key
+- Farcaster account for your bot
 
 ### Installation
 
-1. **Get a FREE Neynar API Key:**
-   - Go to [https://neynar.com](https://neynar.com)
-   - Sign up for a free account
-   - Go to your dashboard and create an API key
-   - Copy the API key
-
-2. **Update the script with your API key:**
-   - Open `index.js`
-   - Replace `'DEMO_API_KEY'` with your actual Neynar API key:
-   ```javascript
-   const NEYNAR_API_KEY = 'your_actual_api_key_here';
-   ```
-
-3. **Navigate to the farcaster directory:**
-   ```bash
-   cd farcaster
-   ```
-
-4. **Install dependencies:**
+1. **Install dependencies:**
    ```bash
    npm install
    ```
 
-5. **Run the monitor:**
+2. **Set up environment variables:**
+   - Copy `env.example` to `.env`
+   - Fill in your actual values:
    ```bash
-   npm start
+   cp env.example .env
    ```
 
-That's it! The script will start monitoring and display any mentions in your console.
+3. **Configure your `.env` file:**
+   ```env
+   NEYNAR_API_KEY=your_neynar_api_key_here
+   BOT_USERNAME=your_bot_username
+   BOT_MNEMONIC=your_bot_mnemonic_phrase_here
+   ```
 
-## 🔧 How It Works
+### Getting Your Credentials
 
-- **Uses Neynar API** - Reliable and fast Farcaster API service
-- **No Farcaster keys required!** - Just a free Neynar API key
-- Checks for mentions every 30 seconds
-- Only shows new mentions (avoids duplicates)
-- Displays the full text, author, timestamp, and cast hash
-- Shows reaction counts (likes, recasts)
+1. **Neynar API Key:**
+   - Visit [neynar.com](https://neynar.com/)
+   - Sign up and get your API key
+   - Add it to your `.env` file
 
-## 📋 Configuration Options
+2. **Bot Username:**
+   - Your Farcaster username (without the @)
 
-You can customize the following in `index.js`:
+3. **Bot Mnemonic:**
+   - Your Farcaster account's recovery phrase
+   - ⚠️ Keep this secure and never share it
+
+## Usage
+
+### Start the bot:
+```bash
+npm start
+```
+
+### Development mode (auto-restart on changes):
+```bash
+npm run dev
+```
+
+## How It Works
+
+1. **Polling:** The bot checks for new mentions every 30 seconds
+2. **Detection:** It fetches mention notifications using the Neynar API
+3. **Processing:** Each new mention is processed and logged
+4. **Response:** You can customize the `onMentionReceived` method to handle mentions
+
+## Customization
+
+### Handling Mentions
+
+Edit the `onMentionReceived` method in `index.js` to customize what happens when someone mentions your bot:
 
 ```javascript
-const USERNAME = 'aaronegeorge';        // Your Farcaster username
-const NEYNAR_API_KEY = 'your_key_here'; // Your Neynar API key
-const CHECK_INTERVAL = 30000;           // Check every 30 seconds (30000ms)
+async onMentionReceived(mentionData) {
+  // Your custom logic here
+  console.log('New mention from:', mentionData.authorUsername);
+  console.log('Message:', mentionData.text);
+  
+  // Add your response logic
+  if (mentionData.text.includes('hello')) {
+    // Handle hello messages
+  }
+}
 ```
 
-## 🛠️ What You'll See
+### Replying to Mentions
 
-When someone mentions you, you'll see output like this:
+To enable automatic replies, you'll need to set up proper authentication and signing. The current implementation shows where to add reply functionality.
 
-```
-🎉 Found 1 new mention(s)!
+## Mention Data Structure
 
-📝 Mention 1:
-   👤 From: @friendusername (Friend Name)
-   💬 Text: "Hey @aaronegeorge, check this out!"
-   🕐 Time: 2024-01-15T14:30:00.000Z
-   🔗 Hash: 0x1234567890abcdef...
-   📊 Reactions: 5 likes, 2 recasts
-   ────────────────────────────────────────
-```
+Each mention contains:
+- `castHash`: Unique identifier for the cast
+- `authorUsername`: Username of who mentioned you
+- `authorFid`: Farcaster ID of the author
+- `text`: The text content of the mention
+- `timestamp`: When the mention occurred
+- `parentCastHash`: If it's a reply, the parent cast hash
 
-## 🆓 Neynar API Limits
+## Security Notes
 
-The free Neynar plan includes:
-- 200K compute units per month
-- Read APIs (perfect for monitoring mentions)
-- No credit card required
+- Never commit your `.env` file to version control
+- Keep your mnemonic phrase secure
+- Use environment variables for all sensitive data
+- Consider using a dedicated bot account
 
-This is more than enough for personal mention monitoring!
+## Troubleshooting
 
-## 🔐 Security Note
+### Common Issues
 
-- Keep your Neynar API key private
-- Don't commit it to public repositories
-- Consider using environment variables for production use
+1. **"NEYNAR_API_KEY is required" error:**
+   - Make sure your `.env` file exists and contains your API key
 
-## 🛑 Stopping the Monitor
+2. **"Error getting bot FID" error:**
+   - Check that your bot username is correct
+   - Ensure the username exists on Farcaster
 
-To stop the monitor, press `Ctrl + C` in your terminal.
+3. **No mentions detected:**
+   - Verify your bot has been mentioned recently
+   - Check that the API key has proper permissions
 
-## 🆘 Troubleshooting
+### Logs
 
-**401 Authentication Error:**
-- Check that your Neynar API key is correct
-- Make sure you haven't exceeded your API limits
+The bot provides detailed logging:
+- 🤖 Bot startup
+- 🔍 Mention checking
+- 📢 New mentions found
+- 📭 No new mentions
+- ❌ Errors
 
-**Username not found:**
-- Verify your Farcaster username is correct
-- Make sure it's the username, not display name
+## Contributing
 
-**Network errors:**
-- Check your internet connection
-- Neynar API is much more reliable than direct hub access
+Feel free to submit issues and enhancement requests!
 
-## 📚 Resources
+## License
 
-- [Neynar Documentation](https://docs.neynar.com/)
-- [Farcaster Protocol](https://www.farcaster.xyz/)
-- [Get a Neynar API Key](https://neynar.com/)
-
----
-
-Happy monitoring! 🎉 
+MIT 

@@ -1,117 +1,193 @@
-const axios = require('axios');
+require('dotenv').config();
+const { NeynarAPIClient } = require('@neynar/nodejs-sdk');
 
-// Configuration
-const USERNAME = 'aaronegeorge'; // Your username
-const NEYNAR_API_KEY = 'E489382E-30CD-44DC-B53F-FAAE1EF6C04D'; // Replace with your actual Neynar API key
-const CHECK_INTERVAL = 30000; // Check every 30 seconds
+// Initialize Neynar client
+const client = new NeynarAPIClient(process.env.NEYNAR_API_KEY);
 
-// Store last seen cast timestamp to avoid duplicates
-let lastSeenTimestamp = Date.now();
+// Bot configuration
+const BOT_USERNAME = process.env.BOT_USERNAME;
+const BOT_MNEMONIC = process.env.BOT_MNEMONIC;
 
-async function getFidByUsername(username) {
-    try {
-        const response = await axios.get(`https://api.neynar.com/v1/farcaster/user-by-username?username=${username}`, {
-            headers: {
-                'accept': 'application/json',
-                'api_key': NEYNAR_API_KEY
-            }
-        });
-        
-        if (response.data && response.data.result && response.data.result.user) {
-            return response.data.result.user.fid;
-        }
-        return null;
-    } catch (error) {
-        console.error('❌ Error getting FID for username:', error.message);
-        return null;
+class FarcasterMentionBot {
+  constructor() {
+    this.client = client;
+    this.lastProcessedTime = new Date();
+    this.isRunning = false;
+  }
+
+  async start() {
+    console.log(`🤖 Starting Farcaster mention bot for @${BOT_USERNAME}`);
+    
+    if (!process.env.NEYNAR_API_KEY) {
+      throw new Error('NEYNAR_API_KEY is required. Please set it in your .env file');
     }
-}
 
-async function searchMentions() {
-    try {
-        console.log(`🔍 Checking for mentions of @${USERNAME}...`);
-        
-        // Get your FID first
-        const fid = await getFidByUsername(USERNAME);
-        if (!fid) {
-            console.error('❌ Could not find FID for username:', USERNAME);
-            return;
-        }
-        
-        console.log(`👤 Your FID: ${fid}`);
-        
-        // Search for mentions using Neynar API
-        const response = await axios.get('https://api.neynar.com/v2/farcaster/feed', {
-            headers: {
-                'accept': 'application/json',
-                'api_key': NEYNAR_API_KEY
-            },
-            params: {
-                feed_type: 'filter',
-                filter_type: 'fids',
-                fids: fid.toString(),
-                limit: 10
-            }
-        });
-
-        if (response.data && response.data.casts) {
-            const newMentions = response.data.casts.filter(cast => {
-                const castTime = new Date(cast.timestamp).getTime();
-                const mentionsYou = cast.text.includes(`@${USERNAME}`) || 
-                                 (cast.mentioned_profiles && cast.mentioned_profiles.some(profile => profile.fid === fid));
-                
-                return castTime > lastSeenTimestamp && mentionsYou;
-            });
-
-            if (newMentions.length > 0) {
-                console.log(`\n🎉 Found ${newMentions.length} new mention(s)!\n`);
-                
-                newMentions.forEach((cast, index) => {
-                    console.log(`📝 Mention ${index + 1}:`);
-                    console.log(`   👤 From: @${cast.author.username} (${cast.author.display_name})`);
-                    console.log(`   💬 Text: "${cast.text}"`);
-                    console.log(`   🕐 Time: ${cast.timestamp}`);
-                    console.log(`   🔗 Hash: ${cast.hash}`);
-                    console.log(`   📊 Reactions: ${cast.reactions.likes_count} likes, ${cast.reactions.recasts_count} recasts`);
-                    console.log(`   ────────────────────────────────────────\n`);
-                });
-
-                // Update last seen timestamp
-                const latestTimestamp = Math.max(...newMentions.map(cast => new Date(cast.timestamp).getTime()));
-                lastSeenTimestamp = latestTimestamp;
-            } else {
-                console.log('✨ No new mentions found');
-            }
-        } else {
-            console.log('📭 No casts found in response');
-        }
-
-    } catch (error) {
-        console.error('❌ Error searching for mentions:', error.message);
-        if (error.response && error.response.status === 401) {
-            console.error('🔑 Authentication failed. Please check your NEYNAR_API_KEY');
-        }
+    if (!BOT_USERNAME) {
+      throw new Error('BOT_USERNAME is required. Please set it in your .env file');
     }
-}
 
-async function startMonitoring() {
-    console.log('🚀 Starting Farcaster mentions monitor...');
-    console.log(`👀 Watching for mentions of @${USERNAME}`);
-    console.log(`⏰ Checking every ${CHECK_INTERVAL / 1000} seconds`);
-    console.log('════════════════════════════════════════\n');
+    this.isRunning = true;
+    await this.startListening();
+  }
+
+  async startListening() {
+    console.log('🔍 Starting to listen for mentions...');
+    
+    // Poll for mentions every 30 seconds
+    setInterval(async () => {
+      if (this.isRunning) {
+        await this.checkForMentions();
+      }
+    }, 30000);
 
     // Initial check
-    await searchMentions();
+    await this.checkForMentions();
+  }
 
-    // Set up interval for periodic checks
-    setInterval(searchMentions, CHECK_INTERVAL);
+  async checkForMentions() {
+    try {
+      console.log('🔍 Checking for new mentions...');
+      
+      // Get mentions using Neynar API
+      const response = await this.client.fetchMentionAndReplyNotifications({
+        fid: await this.getBotFid(),
+        limit: 50
+      });
+
+      if (response?.notifications && response.notifications.length > 0) {
+        const newMentions = response.notifications.filter(notification => {
+          const mentionTime = new Date(notification.most_recent_timestamp);
+          return mentionTime > this.lastProcessedTime;
+        });
+
+        if (newMentions.length > 0) {
+          console.log(`📢 Found ${newMentions.length} new mention(s)!`);
+          
+          for (const mention of newMentions) {
+            await this.handleMention(mention);
+          }
+          
+          this.lastProcessedTime = new Date();
+        } else {
+          console.log('📭 No new mentions found');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error checking for mentions:', error.message);
+    }
+  }
+
+  async getBotFid() {
+    try {
+      // Get bot's FID using username
+      const userResponse = await this.client.lookupUserByUsername(BOT_USERNAME);
+      return userResponse.result.user.fid;
+    } catch (error) {
+      console.error('❌ Error getting bot FID:', error.message);
+      throw error;
+    }
+  }
+
+  async handleMention(mention) {
+    try {
+      console.log('📝 Processing mention:', {
+        from: mention.cast?.author?.username || 'unknown',
+        text: mention.cast?.text || 'no text',
+        hash: mention.cast?.hash || 'no hash'
+      });
+
+      // Extract mention details
+      const mentionData = {
+        castHash: mention.cast?.hash,
+        authorUsername: mention.cast?.author?.username,
+        authorFid: mention.cast?.author?.fid,
+        text: mention.cast?.text,
+        timestamp: mention.most_recent_timestamp,
+        parentCastHash: mention.cast?.parent_hash
+      };
+
+      // Call your custom mention handler
+      await this.onMentionReceived(mentionData);
+
+    } catch (error) {
+      console.error('❌ Error handling mention:', error.message);
+    }
+  }
+
+  async onMentionReceived(mentionData) {
+    // This is where you can customize what happens when someone mentions your bot
+    console.log('🎯 New mention received!');
+    console.log('👤 From:', mentionData.authorUsername);
+    console.log('💬 Text:', mentionData.text);
+    console.log('🔗 Cast Hash:', mentionData.castHash);
+    console.log('⏰ Timestamp:', new Date(mentionData.timestamp));
+    
+    // Example: Reply to the mention
+    await this.replyToMention(mentionData);
+  }
+
+  async replyToMention(mentionData) {
+    try {
+      // Example auto-reply
+      const replyText = `Hello @${mentionData.authorUsername}! Thanks for mentioning me! 👋`;
+      
+      console.log('💬 Attempting to reply:', replyText);
+      
+      // Note: To actually post replies, you'll need to implement cast publishing
+      // This requires additional setup with a signer and proper authentication
+      // For now, we'll just log what we would reply
+      
+      console.log('✅ Reply would be sent:', replyText);
+      
+      // Uncomment and implement this when you have proper signing setup:
+      /*
+      const replyResponse = await this.client.publishCast({
+        text: replyText,
+        parent: mentionData.castHash
+      });
+      console.log('✅ Reply sent successfully:', replyResponse);
+      */
+      
+    } catch (error) {
+      console.error('❌ Error replying to mention:', error.message);
+    }
+  }
+
+  stop() {
+    console.log('🛑 Stopping Farcaster mention bot...');
+    this.isRunning = false;
+  }
 }
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
-    console.log('\n\n👋 Stopping mentions monitor... Goodbye!');
-    process.exit(0);
+  console.log('\n🛑 Received SIGINT. Shutting down gracefully...');
+  if (bot) {
+    bot.stop();
+  }
+  process.exit(0);
 });
 
-// Start the monitor
-startMonitoring();
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Received SIGTERM. Shutting down gracefully...');
+  if (bot) {
+    bot.stop();
+  }
+  process.exit(0);
+});
+
+// Initialize and start the bot
+let bot;
+
+async function main() {
+  try {
+    bot = new FarcasterMentionBot();
+    await bot.start();
+  } catch (error) {
+    console.error('❌ Failed to start bot:', error.message);
+    process.exit(1);
+  }
+}
+
+// Start the bot
+main().catch(console.error);

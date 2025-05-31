@@ -1,16 +1,21 @@
 {
-  "name": "farcaster-mentions-monitor",
+  "name": "farcaster-mention-bot",
   "version": "1.0.0",
-  "description": "Simple Farcaster mentions monitor for @nikhilpn",
+  "description": "A simple bot that listens to Farcaster mentions",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "nodemon index.js"
   },
   "dependencies": {
-    "axios": "^1.6.0"
+    "@neynar/nodejs-sdk": "^2.0.0",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2"
   },
-  "keywords": ["farcaster", "mentions", "monitor"],
-  "author": "nikhilpn",
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  },
+  "keywords": ["farcaster", "warpcast", "bot", "mentions"],
+  "author": "youbet",
   "license": "MIT"
 } 
