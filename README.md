@@ -1,0 +1,7 @@
+Deployed Addresses
+
+SimpleBettingModule#SimpleBetting - 0x9054592D095cf352eD79DEd3087120d8827316F2
+LockModule#Lock - 0xB6A265C087A7dF387dB167c52005AeB4f6C538C9
+
+The contract 0x9054592D095cf352eD79DEd3087120d8827316F2 has already been verified on Sourcify.
+https://testnet.monadexplorer.com/contracts/partial_match/10143/0x9054592D095cf352eD79DEd3087120d8827316F2/
