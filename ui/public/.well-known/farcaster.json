@@ -1,9 +1,11 @@
 {
   "accountAssociation": {
-    "header": "Bearer farcaster-domain-verification",
-    "payload": "youbet.fun"
+    "header": "eyJmaWQiOjM2MjEsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgyY2Q4NWEwOTMyNjFmNTkyNzA4MDRBNkVBNjk3Q2VBNENlQkVjYWZFIn0",
+    "payload": "eyJkb21haW4iOiJ5b3ViZXQuZnVuIn0",
+    "signature": "MHgwZmJiYWIwODg3YTU2MDFiNDU3MzVkOTQ5MDRjM2Y1NGUxMzVhZTQxOGEzMWQ5ODNhODAzZmZlYWNlZWMyZDYzNWY4ZTFjYWU4M2NhNTAwOTMzM2FmMTc1NDlmMDY2YTVlOWUwNTljNmZiNDUxMzg0Njk1NzBhODNiNjcyZWJjZTFi"
   },
   "frame": {
+    "version": "1",
     "name": "YouBet",
     "iconUrl": "https://www.youbet.fun/youbet.png",
     "homeUrl": "https://www.youbet.fun",
@@ -11,7 +13,7 @@
     "buttonTitle": "Open YouBet",
     "splashImageUrl": "https://www.youbet.fun/youbet.png",
     "splashBackgroundColor": "#15161B",
-    "webhookUrl": "https://www.youbet.fun"
+    "webhookUrl": "https://www.youbet.fun/api/webhook"
   },
   "miniApp": {
     "name": "YouBet",
