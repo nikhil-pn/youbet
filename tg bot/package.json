@@ -1,0 +1,20 @@
+{
+  "name": "youbet",
+  "version": "1.0.0",
+  "main": "app.ts",
+  "repository": "https://github.com/4rjunc/youbet.fun.git",
+  "author": "4rjunc <arjunmundamani@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "npx tsx app.ts"
+  },
+  "dependencies": {
+    "@api/vybe-api": "file:.api/apis/vybe-api",
+    "@google-cloud/firestore": "^7.11.1",
+    "dotenv": "^16.5.0",
+    "ethers": "^6.14.3",
+    "express": "^4.21.2",
+    "firebase": "^11.8.1",
+    "grammy": "^1.36.1"
+  }
+}
