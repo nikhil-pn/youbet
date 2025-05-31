@@ -248,6 +248,8 @@ export function startBot() {
     return bettingPoll.listActivePolls(ctx);
   });
 
+  bot.on("poll_answer", (ctx) => bettingPoll.handlePollAnswer(ctx));
+
   // Setup callback query handlers for inline buttons
   Object.keys(commandHandlers).forEach(command => {
     // Register callback query handlers

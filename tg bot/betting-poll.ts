@@ -10,8 +10,19 @@ interface BetPollData {
   messageId: number;
 }
 
+interface VoteData {
+  userId: number;
+  username: string | undefined;
+  firstName: string;
+  vote: 'Yes' | 'No';
+  pollId: string;
+  timestamp: Date;
+}
+
 // Store active polls (in production, use a database)
 const activePools = new Map<string, BetPollData>();
+// Store vote history for each poll
+const pollVotes = new Map<string, VoteData[]>();
 
 export class NativeBettingPoll {
 
@@ -82,7 +93,7 @@ export class NativeBettingPoll {
         question,
         ["Yes", "No"],
         {
-          is_anonymous: true,
+          is_anonymous: false, // Changed to false so we can track voters
           type: "regular",
           allows_multiple_answers: false,
           // Optional: Set a close date (e.g., 24 hours from now)
@@ -102,6 +113,8 @@ export class NativeBettingPoll {
       };
 
       activePools.set(pollMessage.poll!.id, pollData);
+      // Initialize vote storage for this poll
+      pollVotes.set(pollMessage.poll!.id, []);
 
       console.log(`Created betting poll: ${question} | Poll ID: ${pollMessage.poll!.id}`);
 
@@ -114,7 +127,56 @@ export class NativeBettingPoll {
     }
   }
 
-  // Handle poll answers (when someone votes)
+  // Function to handle "Yes" votes
+  private async handleYesVote(voteData: VoteData, ctx: Context) {
+    console.log(`✅ YES vote from ${voteData.username || voteData.firstName} for poll: ${voteData.pollId}`);
+
+    // Add your custom logic here for Yes votes
+    // For example:
+    // - Add user to a "Yes voters" list
+    // - Send them a confirmation message
+    // - Update database records
+    // - Trigger blockchain transactions
+    // - Send notifications to moderators
+
+    try {
+      // Example: Send a private message to the voter
+      await ctx.api.sendMessage(
+        voteData.userId,
+        `✅ Thanks for voting YES!\n\nYour vote has been recorded for the betting poll.\n💰 Bet: ${activePools.get(voteData.pollId)?.betAmount}`
+      );
+    } catch (error) {
+      console.log(`Could not send private message to user ${voteData.userId}`);
+    }
+
+    // Example: Log to your database or external service
+    // await this.logVoteToDatabase(voteData);
+    // await this.processYesBet(voteData);
+  }
+
+  // Function to handle "No" votes
+  private async handleNoVote(voteData: VoteData, ctx: Context) {
+    console.log(`❌ NO vote from ${voteData.username || voteData.firstName} for poll: ${voteData.pollId}`);
+
+    // Add your custom logic here for No votes
+    // Similar to Yes votes but with different logic
+
+    try {
+      // Example: Send a private message to the voter
+      await ctx.api.sendMessage(
+        voteData.userId,
+        `❌ Thanks for voting NO!\n\nYour vote has been recorded for the betting poll.\n💰 Bet: ${activePools.get(voteData.pollId)?.betAmount}`
+      );
+    } catch (error) {
+      console.log(`Could not send private message to user ${voteData.userId}`);
+    }
+
+    // Example: Log to your database or external service
+    // await this.logVoteToDatabase(voteData);
+    // await this.processNoBet(voteData);
+  }
+
+  // Handle poll answers (when someone votes) - ENHANCED VERSION
   async handlePollAnswer(ctx: Context) {
     try {
       const pollAnswer = ctx.pollAnswer;
@@ -126,12 +188,104 @@ export class NativeBettingPoll {
       const user = pollAnswer.user;
       const optionIds = pollAnswer.option_ids;
 
-      console.log(`Poll vote: User ${user.username || user.first_name} voted option ${optionIds} in poll ${pollAnswer.poll_id}`);
+      // Determine which option was selected (Yes = 0, No = 1)
+      if (optionIds.length === 0) return;
 
-      // You can add additional logic here, like tracking votes, notifications, etc.
+      const selectedOption = optionIds[0]; // 0 for Yes, 1 for No
+      const voteChoice: 'Yes' | 'No' = selectedOption === 0 ? 'Yes' : 'No';
+
+      // Create vote data object
+      const voteData: VoteData = {
+        userId: user.id,
+        username: user.username,
+        firstName: user.first_name,
+        vote: voteChoice,
+        pollId: pollAnswer.poll_id,
+        timestamp: new Date()
+      };
+
+      // Store the vote
+      const votes = pollVotes.get(pollAnswer.poll_id) || [];
+
+      // Remove any previous vote from this user (in case they changed their vote)
+      const filteredVotes = votes.filter(v => v.userId !== user.id);
+      filteredVotes.push(voteData);
+      pollVotes.set(pollAnswer.poll_id, filteredVotes);
+
+      // Trigger the appropriate function based on the vote
+      if (voteChoice === 'Yes') {
+        await this.handleYesVote(voteData, ctx);
+      } else {
+        await this.handleNoVote(voteData, ctx);
+      }
+
+      // Optional: Send a notification to the group chat
+      await ctx.api.sendMessage(
+        pollData.chatId,
+        `🗳️ @${user.username || user.first_name} voted ${voteChoice === 'Yes' ? '✅ YES' : '❌ NO'} on "${pollData.question}"`,
+        {
+          parse_mode: "Markdown",
+          reply_to_message_id: pollData.messageId
+        }
+      );
 
     } catch (error) {
       console.error('Error handling poll answer:', error);
+    }
+  }
+
+  // Get detailed voting results
+  async getDetailedResults(ctx: Context, pollId?: string) {
+    try {
+      let targetPollId = pollId;
+
+      if (!targetPollId && ctx.message?.reply_to_message?.poll) {
+        targetPollId = ctx.message.reply_to_message.poll.id;
+      }
+
+      if (!targetPollId) {
+        return ctx.reply("❌ Please reply to a poll message to get results");
+      }
+
+      const pollData = activePools.get(targetPollId);
+      const votes = pollVotes.get(targetPollId) || [];
+
+      if (!pollData) {
+        return ctx.reply("❌ Poll data not found");
+      }
+
+      const yesVotes = votes.filter(v => v.vote === 'Yes');
+      const noVotes = votes.filter(v => v.vote === 'No');
+
+      let resultsMessage =
+        `📊 *Detailed Poll Results*\n\n` +
+        `🎯 *Question:* ${pollData.question}\n` +
+        `💰 *Bet:* ${pollData.betAmount}\n` +
+        `👨‍💼 *Moderator:* ${pollData.moderator}\n\n` +
+        `📈 *Vote Summary:*\n` +
+        `✅ YES: ${yesVotes.length} votes\n` +
+        `❌ NO: ${noVotes.length} votes\n\n`;
+
+      if (yesVotes.length > 0) {
+        resultsMessage += `✅ *YES Voters:*\n`;
+        yesVotes.forEach(vote => {
+          resultsMessage += `• @${vote.username || vote.firstName}\n`;
+        });
+        resultsMessage += '\n';
+      }
+
+      if (noVotes.length > 0) {
+        resultsMessage += `❌ *NO Voters:*\n`;
+        noVotes.forEach(vote => {
+          resultsMessage += `• @${vote.username || vote.firstName}\n`;
+        });
+      }
+
+      await ctx.reply(resultsMessage, { parse_mode: "Markdown" });
+
+    } catch (error) {
+      console.error('Error getting detailed results:', error);
+      await ctx.reply("❌ Error retrieving detailed results");
     }
   }
 
@@ -168,16 +322,23 @@ export class NativeBettingPoll {
       // Stop the poll
       await ctx.api.stopPoll(pollData.chatId, pollData.messageId);
 
+      // Get final vote counts
+      const votes = pollVotes.get(targetPollId) || [];
+      const yesCount = votes.filter(v => v.vote === 'Yes').length;
+      const noCount = votes.filter(v => v.vote === 'No').length;
+
       // Send closing message
       await ctx.reply(
         `🔒 *Poll Closed*\n\n` +
         `📊 Final results for: "${pollData.question}"\n` +
         `💰 Bet: ${pollData.betAmount}\n` +
+        `✅ YES: ${yesCount} votes\n` +
+        `❌ NO: ${noCount} votes\n` +
         `👨‍💼 Closed by: @${ctx.from?.username}`,
         { parse_mode: "Markdown" }
       );
 
-      // Remove from active polls
+      // Remove from active polls but keep vote history
       activePools.delete(targetPollId);
 
     } catch (error) {
@@ -245,10 +406,15 @@ export class NativeBettingPoll {
       let message = `📊 *Active Betting Polls:*\n\n`;
 
       Array.from(activePools.values()).forEach((poll, index) => {
+        const votes = pollVotes.get(poll.pollId) || [];
+        const yesCount = votes.filter(v => v.vote === 'Yes').length;
+        const noCount = votes.filter(v => v.vote === 'No').length;
+
         message += `${index + 1}. ${poll.question}\n`;
         message += `   💰 Bet: ${poll.betAmount}\n`;
         message += `   👨‍💼 Mod: ${poll.moderator}\n`;
-        message += `   👤 Creator: @${poll.creator}\n\n`;
+        message += `   👤 Creator: @${poll.creator}\n`;
+        message += `   📊 Votes: ✅${yesCount} | ❌${noCount}\n\n`;
       });
 
       await ctx.reply(message, { parse_mode: "Markdown" });
@@ -272,9 +438,10 @@ const bettingPoll = new NativeBettingPoll();
 bot.command("bet", (ctx) => bettingPoll.createBetPoll(ctx));
 bot.command("closepoll", (ctx) => bettingPoll.closePoll(ctx));
 bot.command("pollresults", (ctx) => bettingPoll.getPollResults(ctx));
+bot.command("detailedresults", (ctx) => bettingPoll.getDetailedResults(ctx));
 bot.command("activepolls", (ctx) => bettingPoll.listActivePolls(ctx));
 
-// Handle poll answers
+// Handle poll answers - THIS IS WHERE THE MAGIC HAPPENS
 bot.on("poll_answer", (ctx) => bettingPoll.handlePollAnswer(ctx));
 
 bot.start();
