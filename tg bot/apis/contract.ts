@@ -11,7 +11,7 @@ const CONTRACT_ABI = [
 
 
 // Configuration
-const CONTRACT_ADDRESS = "0xAabDD138bdF948A281c7007cfBb16c4198D1E3ff"; // Replace with deployed contract address
+const CONTRACT_ADDRESS = "0x52F8b5f9122ece34191653D59AED3CaC3D78BeFA"; // Replace with deployed contract address
 const RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/Ga1VL8EhvMVle7_yFbZZ4CgTEVCrBSpS"; // Replace with your RPC URL
 
 
@@ -108,4 +108,26 @@ async function getBetDetails(betId: string, privateKey: string) {
   }
 }
 
-export { createBet, voteOnBet, getBetDetails };
+async function releaseFunds(betId, winOption, privateKey) {
+  try {
+    const wallet1 = new ethers.Wallet(privateKey, provider); // wallet of /bet caller
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet1);
+
+    // Get bet details to know the required amount
+    const betDetails = await getBetDetails(betId, privateKey);
+
+    console.log(`Releasing funds for bet: ${betId}, Winner: ${winOption === 1 ? 'Yes' : 'No'}`);
+
+    const tx = await contract.release(betId, winOption);
+    console.log("Transaction hash:", tx.hash);
+
+    const receipt = await tx.wait();
+    console.log(`Funds released successfully! Block: ${receipt.blockNumber}`);
+    return receipt;
+  } catch (error) {
+    console.error("Error releasing funds:", error.message);
+    throw error;
+  }
+}
+
+export { createBet, voteOnBet, getBetDetails, releaseFunds };
