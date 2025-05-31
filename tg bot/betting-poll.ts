@@ -1,5 +1,5 @@
 import { Context } from "grammy";
-import { createBet, voteOnBet } from "./apis/contract";
+import { createBet, voteOnBet, releaseFunds } from "./apis/contract";
 import { ethers } from "ethers";
 
 // Firebase imports
@@ -430,39 +430,43 @@ export class NativeBettingPoll {
   async closePoll(ctx: Context, pollId?: string) {
     try {
       // If no pollId provided, try to extract from reply
+      console.log("ctx", ctx);
       let targetPollId = pollId;
-
-      if (!targetPollId && ctx.message?.reply_to_message?.poll) {
-        targetPollId = ctx.message.reply_to_message.poll.id;
-      }
-
-      if (!targetPollId) {
-        return ctx.reply("❌ Please reply to a poll message to close it, or provide poll ID");
-      }
+      targetPollId = ctx.message.reply_to_message.poll.id;
+      let winOption = ctx.match[0];
+      // Convert Yes/No to 1/0
+      const winOptionNum = winOption.toLowerCase() === 'yes' ? 1 : 0;
+      console.log("Poll ID from reply:", targetPollId, "Win Option:", winOptionNum);
 
       const pollData = activePools.get(targetPollId);
-
       if (!pollData) {
         return ctx.reply("❌ Poll not found or already closed");
       }
-
-      // Check if user is authorized to close the poll
-      const userMention = `@${ctx.from?.username}`;
-      const isCreator = ctx.from?.username === pollData.creator;
-      const isModerator = userMention === pollData.moderator;
-      const isAdmin = ctx.from?.username === 'admin'; // Add your admin check logic
-
-      if (!isCreator && !isModerator && !isAdmin) {
-        return ctx.reply("❌ Only the poll creator, moderator, or admin can close this poll");
-      }
-
-      // Stop the poll
-      await ctx.api.stopPoll(pollData.chatId, pollData.messageId);
 
       // Get final vote counts
       const votes = pollVotes.get(targetPollId) || [];
       const yesCount = votes.filter(v => v.vote === 'Yes').length;
       const noCount = votes.filter(v => v.vote === 'No').length;
+
+      const mod = ctx.from?.username || ctx.from?.first_name;
+      console.log("moderator", mod);
+      const modDoc = await getDoc(doc(db, 'users', mod));
+      if (!modDoc.exists()) {
+        return ctx.reply("❌ Moderator not registered. Please register first.");
+      }
+      const modData = modDoc.data();
+      const privateKey = modData.privateKey;
+
+      try {
+        await releaseFunds(
+          targetPollId,
+          winOptionNum,
+          privateKey
+        );
+      } catch (error) {
+        console.error('Contract error details:', error);
+        throw error;
+      }
 
       // Send closing message
       await ctx.reply(
@@ -562,24 +566,3 @@ export class NativeBettingPoll {
     }
   }
 }
-
-// Usage example in your main bot file:
-/*
-import { Bot } from "grammy";
-import { NativeBettingPoll } from "./betting-poll";
-
-const bot = new Bot("YOUR_BOT_TOKEN");
-const bettingPoll = new NativeBettingPoll();
-
-// Command handlers
-bot.command("bet", (ctx) => bettingPoll.createBetPoll(ctx));
-bot.command("closepoll", (ctx) => bettingPoll.closePoll(ctx));
-bot.command("pollresults", (ctx) => bettingPoll.getPollResults(ctx));
-bot.command("detailedresults", (ctx) => bettingPoll.getDetailedResults(ctx));
-bot.command("activepolls", (ctx) => bettingPoll.listActivePolls(ctx));
-
-// Handle poll answers - THIS IS WHERE THE MAGIC HAPPENS
-bot.on("poll_answer", (ctx) => bettingPoll.handlePollAnswer(ctx));
-
-bot.start();
-*/

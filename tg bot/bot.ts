@@ -229,7 +229,7 @@ export function startBot() {
     return bettingPoll.createBetPoll(ctx);
   });
 
-  bot.command("closepoll", (ctx) => {
+  bot.command("close", (ctx) => {
     if (!isGroup(ctx)) {
       return ctx.reply("🎯 Poll management is only available in groups. Please use this command in a group chat.");
     }
