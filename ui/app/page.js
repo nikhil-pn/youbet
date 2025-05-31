@@ -5,6 +5,7 @@ import { sdk } from "@farcaster/frame-sdk";
 import { useState, useEffect } from "react";
 
 import Image from "next/image";
+import NextButton from "./NextButton";
 
 const Frijole = FrijoleFont({
   variable: "--font-frijole",
@@ -45,12 +46,8 @@ export default function Home() {
           </h2>
 
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-            <button className="bg-green-200 hover:bg-green-300 text-gray-800 font-semibold py-2 sm:py-2 px-4 sm:px-6 text-sm sm:text-base border border-gray-400 rounded-md">
-              Discover Bets
-            </button>
-            <button className="bg-green-200 hover:bg-green-300 text-gray-800 font-semibold py-2 sm:py-2 px-4 sm:px-6 text-sm sm:text-base border border-gray-400 rounded-md">
-              Create Bet
-            </button>
+         
+            <NextButton />
           </div>
         </div>
       </div>
