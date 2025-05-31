@@ -70,60 +70,29 @@ export function startBot() {
 
     // New commands
     async help(ctx: any) {
-      const message = `🌌 <b>VYBGEN COMMAND MATRIX </b> 🌌\n\n` +
+      const message = `🌌 <b>YouBet Commands</b> 🌌\n\n` +
+        `🏠 <b>Main Commands</b>\n` +
+        `<blockquote expandable>` +
+        `/help - Show this help menu\n` +
+        `/start - Create your wallet (DM only)\n` +
+        `</blockquote>\n\n` +
+
         `💰 <b>Wallet Management (DM Only)</b>\n` +
         `<blockquote expandable>` +
-        `/start - Create your wallet\n` +
         `/balance - Check your balance\n` +
         `</blockquote>\n\n` +
 
-        `🎯 <b>Betting (Groups Only)</b>\n` +
+        `🎯 <b>Betting & Polls (Groups Only)</b>\n` +
         `<blockquote expandable>` +
-        `/bet - Create betting poll\n` +
+        `/poll - Create betting poll\n` +
         `/closepoll - Close active poll\n` +
-        `/pollresults - View poll results\n` +
+        `/results - View poll results\n` +
         `/activepolls - List active polls\n` +
         `</blockquote>\n\n` +
 
-        `💰 <b>Wallet Analysis</b>\n` +
-        `<blockquote expandable>` +
-        `/tb [address] - Token balance scan\n` +
-        `/nb [address] - NFT collection analysis\n` +
-        `/pnl [address] - Profit & loss metrics\n` +
-        `/portfolio - Manage your digital assets\n` +
-        `</blockquote>\n\n` +
-
-        `🔍 <b>Token Research</b>\n` +
-        `<blockquote expandable>` +
-        `/s [mint] - Token deep dive\n` +
-        `/whale [mint] - Top holders analysis\n` +
-        `/c [mint] - Price chart visualization\n` +
-        `/lb - Get token leaderboard\n` +
-        `</blockquote>\n\n` +
-
-        `🧩 <b>Program Analysis</b>\n` +
-        `<blockquote expandable>` +
-        `/program - Discover programs\n` +
-        `/program [address] - Program details\n` +
-        `</blockquote>\n\n` +
-
-        `💃🏼 <b>Fun & News</b>\n` +
-        `<blockquote expandable>` +
-        `/roast [address] - Roast addresses\n` +
-        `/markets - View Global Market Status\n` +
-        `/news - Get update on global market and crypto news\n` +
-        `/motivate - Don't give up\n` +
-        `</blockquote>\n\n` +
-
-        `💡 <b>Tips</b>\n` +
-        `<i>• Use /start in DM to create wallet\n` +
-        `• Use /bet in groups to create polls\n` +
-        `• Use /balance to check your funds</i>\n\n` +
-
         `<b>⚠️ System Status: ONLINE</b>\n` +
         `<b>🔋 Power Level: 100%</b>\n` +
-        `<b>🌐 Network: Solana Mainnet & Monad Testnet</b>`;
-
+        `<b>🌐 Network: Monad Testnet</b>`;
       await ctx.reply(message, {
         parse_mode: "HTML",
         reply_parameters: { message_id: ctx.msg.message_id },
@@ -292,7 +261,7 @@ export function startBot() {
   });
 
   // Handle poll answers
-  bot.on("poll_answer", (ctx) => bettingPoll.handlePollAnswer(ctx));
+  //bot.on("poll_answer", (ctx) => bettingPoll.handlePollAnswer(ctx));
 
   // Error handling
   bot.catch((err) => {
@@ -311,7 +280,6 @@ export function startBot() {
   // Start the bot
   bot.start();
 
-  // Return bot with stop method for clean shutdown
   return {
     bot,
     stop: () => bot.stop()
