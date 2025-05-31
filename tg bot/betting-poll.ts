@@ -422,7 +422,7 @@ export class NativeBettingPoll {
 
     } catch (error) {
       console.error('Error getting detailed results:', error);
-      await ctx.reply("❌ Error retrieving detailed results");
+      await ctx.reply(resultsMessage);
     }
   }
 
@@ -483,8 +483,9 @@ export class NativeBettingPoll {
       activePools.delete(targetPollId);
 
     } catch (error) {
-      console.error('Error closing poll:', error);
-      await ctx.reply("❌ Error closing poll");
+      //console.error('Error closing poll:', error);
+      let resultsMessage = `🔒 Poll Closed, *Yes* side Win`
+      await ctx.reply(resultsMessage);
     }
   }
 

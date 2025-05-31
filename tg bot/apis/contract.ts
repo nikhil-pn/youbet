@@ -11,8 +11,10 @@ const CONTRACT_ABI = [
 
 
 // Configuration
-const CONTRACT_ADDRESS = "0x9054592D095cf352eD79DEd3087120d8827316F2"; // Replace with deployed contract address
+const CONTRACT_ADDRESS = "0x607E9b2E74422755a421dEB2aa98ADdD2b96DeFd"; // Replace with deployed contract address
 const RPC_URL = "https://testnet-rpc.monad.xyz"; // Replace with your RPC URL
+//const RPC_URL = "https://eth-sepolia.g.alchemy.com/v2/Ga1VL8EhvMVle7_yFbZZ4CgTEVCrBSpS";
+
 
 
 // Create provider
