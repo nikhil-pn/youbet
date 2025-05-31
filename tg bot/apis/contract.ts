@@ -55,4 +55,57 @@ async function createBet(
   }
 }
 
-export { createBet };
+async function voteOnBet(betId: string, option: number, privateKey: string) {
+  try {
+    const wallet1 = new ethers.Wallet(privateKey, provider); // wallet of /bet caller
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet1);
+
+    // Get bet details to know the required amount
+    const betDetails = await getBetDetails(betId, privateKey);
+    const betAmount = betDetails.betAmount;
+
+    const tx = await contract.vote(betId, option, {
+      value: betAmount
+    });
+    console.log("Transaction hash:", tx.hash);
+
+    const receipt = await tx.wait();
+    console.log(`Vote cast successfully! Block: ${receipt.blockNumber}`);
+    return receipt;
+  } catch (error) {
+    console.error("Error voting:", error.message);
+    throw error;
+  }
+}
+
+async function getBetDetails(betId: string, privateKey: string) {
+  try {
+    const wallet1 = new ethers.Wallet(privateKey, provider); // wallet of /bet caller
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet1);
+    const result = await contract.getBet(betId);
+
+    const betDetails = {
+      moderator: result[0],
+      betAmount: result[1],
+      totalPool: result[2],
+      yesCount: result[3],
+      noCount: result[4],
+      isResolved: result[5]
+    };
+
+    console.log(`Bet Details for ${betId}:`);
+    console.log(`  Moderator: ${betDetails.moderator}`);
+    console.log(`  Bet Amount: ${fromWei(betDetails.betAmount)} ETH`);
+    console.log(`  Total Pool: ${fromWei(betDetails.totalPool)} ETH`);
+    console.log(`  Yes Votes: ${betDetails.yesCount}`);
+    console.log(`  No Votes: ${betDetails.noCount}`);
+    console.log(`  Is Resolved: ${betDetails.isResolved}`);
+
+    return betDetails;
+  } catch (error) {
+    console.error("Error getting bet details:", error.message);
+    throw error;
+  }
+}
+
+export { createBet, voteOnBet, getBetDetails };

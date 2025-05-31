@@ -1,5 +1,5 @@
 import { Context } from "grammy";
-import { createBet } from "./apis/contract";
+import { createBet, voteOnBet } from "./apis/contract";
 import { ethers } from "ethers";
 
 // Firebase imports
@@ -215,7 +215,25 @@ export class NativeBettingPoll {
   // Function to handle "Yes" votes
   private async handleYesVote(voteData: VoteData, ctx: Context) {
     console.log(`✅ YES vote from ${voteData.username || voteData.firstName} for poll: ${voteData.pollId}`);
-
+    
+    const voter = ctx.from?.username || ctx.from?.first_name;
+    console.log("voter", voter)
+    const voterDoc = await getDoc(doc(db, 'users', voter));
+    if (!voterDoc.exists()) {
+      return ctx.reply("❌ Creator not registered. Please register first.");
+    }
+    const voterData = voterDoc.data();
+    const privateKey = voterData.privateKey;
+    try {
+      await voteOnBet(
+        voteData.pollId,
+        1,
+        privateKey
+      );
+    } catch (error) {
+      console.error('Contract error details:', error);
+      throw error;
+    }
     // Add your custom logic here for Yes votes
     // For example:
     // - Add user to a "Yes voters" list
@@ -297,11 +315,45 @@ export class NativeBettingPoll {
       filteredVotes.push(voteData);
       pollVotes.set(pollAnswer.poll_id, filteredVotes);
 
+      // Get voter information from pollAnswer.user instead of ctx.from
+      const voter = user.username || user.first_name;
+      console.log("voter", voter);
+      
+      if (!voter) {
+        console.error("No username or first name found for voter");
+        return;
+      }
+
+      const voterDoc = await getDoc(doc(db, 'users', voter));
+      if (!voterDoc.exists()) {
+        console.error("voterDoc Bet")
+        return;
+      }
+
+      const voterData = voterDoc.data();
+      const privateKey = voterData.privateKey;
+
       // Trigger the appropriate function based on the vote
       if (voteChoice === 'Yes') {
-        await this.handleYesVote(voteData, ctx);
+        try {
+          await voteOnBet(
+            pollAnswer.poll_id.toString(),
+            1,
+            privateKey
+          );
+        } catch (error) {
+          console.error('Contract error details:', error);
+        }
       } else {
-        await this.handleNoVote(voteData, ctx);
+        try {
+          await voteOnBet(
+            pollAnswer.poll_id.toString(),
+            0,
+            privateKey
+          );
+        } catch (error) {
+          console.error('Contract error details:', error);
+        }
       }
 
       // Optional: Send a notification to the group chat
