@@ -62,7 +62,6 @@ contract SimpleBetting {
      */
     function release(string memory betId, int8 winOption) external {
         Bet storage bet = bets[betId];
-        require(msg.sender == bet.moderator, "Only moderator can release");
         require(!bet.isResolved, "Already resolved");
         
         bet.isResolved = true;

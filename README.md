@@ -1,5 +1,4 @@
 Deployed Addresses
-
 SimpleBettingModule#SimpleBetting - 0x9054592D095cf352eD79DEd3087120d8827316F2
 
 The contract 0x9054592D095cf352eD79DEd3087120d8827316F2 has already been verified on Sourcify.
