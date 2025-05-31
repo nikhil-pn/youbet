@@ -7,14 +7,20 @@ import { ethers } from "ethers";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 
-// // Firebase configuration
-// const firebaseConfig = {
-//
-// };
-//
-// // Initialize Firebase
-// const app = initializeApp(firebaseConfig);
-// const db = getFirestore(app);
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: process.env.API_KEY,
+  authDomain: process.env.AUTH_DOMAIN,
+  projectId: process.env.PROJECT_ID,
+  storageBucket: process.env.STORAGE_BUCKET,
+  messagingSenderId: process.env.MESSAGING_SENDER_ID,
+  appId: process.env.APP_ID,
+  measurementId: process.env.MEASUREMENT_ID,
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 // Monad RPC endpoint
 const MONAD_RPC_URL = "https://testnet-rpc.monad.xyz";
@@ -190,7 +196,7 @@ export function startBot() {
 
       const sentMessage = await ctx.reply(welcomeMessage, { parse_mode: "HTML" });
 
-      // Delete the message after 60 seconds for security
+      // Delete the message after 120 seconds for security
       setTimeout(async () => {
         try {
           await ctx.api.deleteMessage(ctx.chat.id, sentMessage.message_id);
@@ -198,7 +204,7 @@ export function startBot() {
         } catch (error) {
           console.error('Error deleting message:', error);
         }
-      }, 60000);
+      }, 120000);
 
     } catch (error) {
       console.error('Error creating wallet:', error);

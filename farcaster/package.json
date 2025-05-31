@@ -1,0 +1,16 @@
+{
+  "name": "farcaster-mentions-monitor",
+  "version": "1.0.0",
+  "description": "Simple Farcaster mentions monitor for @nikhilpn",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "keywords": ["farcaster", "mentions", "monitor"],
+  "author": "nikhilpn",
+  "license": "MIT"
+} 
