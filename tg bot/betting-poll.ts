@@ -64,11 +64,11 @@ export class NativeBettingPoll {
 
   async createBetPoll(ctx: Context) {
     try {
-      
+
       // Extract the command text after /bet
       const messageText = ctx.message?.text || '';
       const commandMatch = messageText.match(/^\/bet(?:@\w+)?\s+([\s\S]+)/);
-      
+
       if (!commandMatch) {
         return ctx.reply(
           "⚠️ *Invalid Format*\n\n" +
@@ -130,7 +130,7 @@ export class NativeBettingPoll {
       }
       const moderatorData = moderatorDoc.data();
       const publicKey = moderatorData.publicKey;
-      
+
       // Convert public key to Ethereum address
       const moderatorAddress = publicKeyToAddress(publicKey);
 
@@ -215,7 +215,7 @@ export class NativeBettingPoll {
   // Function to handle "Yes" votes
   private async handleYesVote(voteData: VoteData, ctx: Context) {
     console.log(`✅ YES vote from ${voteData.username || voteData.firstName} for poll: ${voteData.pollId}`);
-    
+
     const voter = ctx.from?.username || ctx.from?.first_name;
     console.log("voter", voter)
     const voterDoc = await getDoc(doc(db, 'users', voter));
@@ -318,7 +318,7 @@ export class NativeBettingPoll {
       // Get voter information from pollAnswer.user instead of ctx.from
       const voter = user.username || user.first_name;
       console.log("voter", voter);
-      
+
       if (!voter) {
         console.error("No username or first name found for voter");
         return;
@@ -422,7 +422,7 @@ export class NativeBettingPoll {
 
     } catch (error) {
       console.error('Error getting detailed results:', error);
-      await ctx.reply(resultsMessage);
+      await ctx.reply("Something Went Wrong");
     }
   }
 
